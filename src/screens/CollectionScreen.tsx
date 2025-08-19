@@ -169,8 +169,8 @@ export default function CollectionScreen() {
     try {
       await updateCard(selectedCard.id, {
         quantity: selectedCard.quantity,
-        condition: selectedCard.condition,
-        notes: selectedCard.notes,
+        ...(selectedCard.condition && { condition: selectedCard.condition }),
+        ...(selectedCard.notes && { notes: selectedCard.notes }),
       });
       
       setEditDialogVisible(false);

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Title, Paragraph } from 'react-native-paper';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 
 // Import services
 import { detectCards, recognizeCard } from '../services/aiService';
@@ -41,6 +42,7 @@ export default function ScannerScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const [detectedCards, setDetectedCards] = useState<DetectedCard[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showImageSourceModal, setShowImageSourceModal] = useState(false);
   const cameraRef = useRef<Camera>(null);
 
   useEffect(() => {
@@ -124,6 +126,53 @@ export default function ScannerScreen() {
     );
   };
 
+  const requestMediaLibraryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant permission to access your photo library.');
+      return false;
+    }
+    return true;
+  };
+
+  const pickImageFromGallery = async () => {
+    if (!(await requestMediaLibraryPermission())) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        await processImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image from gallery');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const showImageSourceOptions = () => {
+    setShowImageSourceModal(true);
+  };
+
+  const handleImageSourceSelection = (source: 'camera' | 'gallery') => {
+    setShowImageSourceModal(false);
+    if (source === 'camera') {
+      takePicture();
+    } else if (source === 'gallery') {
+      pickImageFromGallery();
+    }
+  };
+
   if (hasPermission === null) {
     return <View style={styles.container}><Text>Requesting camera permission...</Text></View>;
   }
@@ -191,6 +240,9 @@ export default function ScannerScreen() {
           <Text style={styles.instructionText}>
             Position cards within the frame
           </Text>
+          <Text style={styles.subtitleText}>
+            Tap the center button to choose camera or gallery
+          </Text>
         </View>
         
         <View style={styles.buttonContainer}>
@@ -200,15 +252,50 @@ export default function ScannerScreen() {
           
           <TouchableOpacity 
             style={[styles.captureButton, isProcessing && styles.captureButtonDisabled]} 
-            onPress={takePicture}
+            onPress={showImageSourceOptions}
             disabled={isProcessing}
           >
             <View style={styles.captureButtonInner} />
           </TouchableOpacity>
           
-          <View style={styles.placeholder} />
+          <TouchableOpacity style={styles.galleryButton} onPress={pickImageFromGallery}>
+            <Ionicons name="images" size={30} color="white" />
+          </TouchableOpacity>
         </View>
       </Camera>
+
+      {/* Image Source Modal */}
+      {showImageSourceModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Title style={styles.modalTitle}>Choose Image Source</Title>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalButton} 
+                onPress={() => handleImageSourceSelection('camera')}
+              >
+                <Ionicons name="camera" size={40} color="#007AFF" />
+                <Text style={styles.modalButtonText}>Camera</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.modalButton} 
+                onPress={() => handleImageSourceSelection('gallery')}
+              >
+                <Ionicons name="images" size={40} color="#007AFF" />
+                <Text style={styles.modalButtonText}>Gallery</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={() => setShowImageSourceModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -276,6 +363,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
   },
+  subtitleText: {
+    color: 'white',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 15,
+    opacity: 0.8,
+  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -312,6 +410,68 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 50,
+  },
+  galleryButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    margin: 20,
+    alignItems: 'center',
+    minWidth: 300,
+  },
+  modalTitle: {
+    marginBottom: 30,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 30,
+  },
+  modalButton: {
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 15,
+    backgroundColor: '#f8f9fa',
+    minWidth: 100,
+  },
+  modalButtonText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  cancelButton: {
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    backgroundColor: '#ff3b30',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   scanningHeader: {
     padding: 20,
