@@ -145,7 +145,7 @@ export default function ScannerScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [4, 3],
+        aspect: [3, 4],
         quality: 0.8,
       });
 
@@ -315,8 +315,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scanFrame: {
-    width: width * 0.8,
-    height: height * 0.4,
+    width: width * 0.6,
+    height: height * 0.6,
     borderWidth: 2,
     borderColor: 'transparent',
     position: 'relative',

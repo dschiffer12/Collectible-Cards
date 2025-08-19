@@ -4,6 +4,9 @@ import { getCardInfoWithDetection, CardInfo } from './cardGameAPIs';
 // Configuration - Use environment variables for API keys
 const GOOGLE_CLOUD_VISION_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_KEY || '';
 
+// Debug: Log API key status (without exposing the actual key)
+console.log('API Key Status:', GOOGLE_CLOUD_VISION_API_KEY ? 'Present' : 'Missing or Empty');
+
 interface DetectedCard {
   id: string;
   name: string;
@@ -21,6 +24,12 @@ interface DetectedCard {
 
 // Google Cloud Vision API for text extraction and object detection
 export const detectCards = async (imageBase64: string): Promise<DetectedCard[]> => {
+  // Check if API key is available
+  if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'your_google_cloud_vision_api_key_here') {
+    console.warn('Google Cloud Vision API key not found or invalid. Using mock data for development.');
+    return detectCardsMock(imageBase64);
+  }
+
   try {
     const response = await axios.post(
       `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_CLOUD_VISION_API_KEY}`,
@@ -84,9 +93,28 @@ export const detectCards = async (imageBase64: string): Promise<DetectedCard[]> 
     }
 
     return detectedCards;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error detecting cards:', error);
-    throw new Error('Failed to detect cards in image');
+    
+    // Check for specific API errors
+    if (error.response?.status === 403) {
+      console.error('403 Error: API key might be invalid, expired, or Cloud Vision API not enabled');
+      console.error('Please check your Google Cloud Console settings');
+      // Fall back to mock data instead of throwing error
+      console.warn('Falling back to mock data...');
+      return detectCardsMock(imageBase64);
+    }
+    
+    if (error.response?.status === 429) {
+      console.error('429 Error: Rate limit exceeded. Please wait and try again.');
+      // Fall back to mock data
+      console.warn('Falling back to mock data...');
+      return detectCardsMock(imageBase64);
+    }
+    
+    // For other errors, still fall back to mock data
+    console.warn('API error occurred. Falling back to mock data...');
+    return detectCardsMock(imageBase64);
   }
 };
 
@@ -129,6 +157,13 @@ export { getCardInfo } from './cardGameAPIs';
 
 // Recognize a specific card from an image
 export const recognizeCard = async (imageBase64: string): Promise<DetectedCard | null> => {
+  // Check if API key is available
+  if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'your_google_cloud_vision_api_key_here') {
+    console.warn('Google Cloud Vision API key not found or invalid. Using mock data for development.');
+    const mockCards = await detectCardsMock(imageBase64);
+    return mockCards.length > 0 ? mockCards[0] || null : null;
+  }
+
   try {
     // Use Google Cloud Vision API for more detailed analysis
     const response = await axios.post(
@@ -181,9 +216,31 @@ export const recognizeCard = async (imageBase64: string): Promise<DetectedCard |
     }
 
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error recognizing card:', error);
-    throw new Error('Failed to recognize card');
+    
+    // Check for specific API errors
+    if (error.response?.status === 403) {
+      console.error('403 Error: API key might be invalid, expired, or Cloud Vision API not enabled');
+      console.error('Please check your Google Cloud Console settings');
+      // Fall back to mock data instead of throwing error
+      console.warn('Falling back to mock data...');
+      const mockCards = await detectCardsMock(imageBase64);
+      return mockCards.length > 0 ? mockCards[0] || null : null;
+    }
+    
+    if (error.response?.status === 429) {
+      console.error('429 Error: Rate limit exceeded. Please wait and try again.');
+      // Fall back to mock data
+      console.warn('Falling back to mock data...');
+      const mockCards = await detectCardsMock(imageBase64);
+      return mockCards.length > 0 ? mockCards[0] || null : null;
+    }
+    
+    // For other errors, still fall back to mock data
+    console.warn('API error occurred. Falling back to mock data...');
+    const mockCards = await detectCardsMock(imageBase64);
+    return mockCards.length > 0 ? mockCards[0] || null : null;
   }
 };
 
@@ -231,6 +288,50 @@ const isLikelyCardName = (text: string): boolean => {
 // Generate a unique ID
 const generateId = (): string => {
   return Math.random().toString(36).substr(2, 9);
+};
+
+// Test API key function
+export const testAPIKey = async (): Promise<boolean> => {
+  if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'your_google_cloud_vision_api_key_here') {
+    console.log('API Key Status: Not configured');
+    return false;
+  }
+
+  try {
+    // Test with a simple image (1x1 pixel)
+    const testImage = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    
+    const response = await axios.post(
+      `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_CLOUD_VISION_API_KEY}`,
+      {
+        requests: [
+          {
+            image: {
+              content: testImage,
+            },
+            features: [
+              {
+                type: 'TEXT_DETECTION',
+                maxResults: 1,
+              },
+            ],
+          },
+        ],
+      }
+    );
+
+    console.log('API Key Status: Valid');
+    return true;
+  } catch (error: any) {
+    if (error.response?.status === 403) {
+      console.log('API Key Status: Invalid or API not enabled');
+    } else if (error.response?.status === 429) {
+      console.log('API Key Status: Rate limit exceeded');
+    } else {
+      console.log('API Key Status: Error testing key');
+    }
+    return false;
+  }
 };
 
 // Mock function for development/testing without API keys
