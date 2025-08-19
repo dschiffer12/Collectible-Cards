@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { getCardInfoWithDetection, CardInfo } from './cardGameAPIs';
 
-// Configuration - Replace with your actual API keys
-const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyBTumhFlzjb0NT2WxHBDIs3svJ4Laacsgs';
+// Configuration - Use environment variables for API keys
+const GOOGLE_CLOUD_VISION_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_KEY || '';
 
 interface DetectedCard {
   id: string;

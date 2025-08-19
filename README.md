@@ -53,13 +53,28 @@ A React Native mobile application that uses AI to scan and identify collectible 
 
 4. **Configure API Keys**
 
-   Create a `.env` file in the root directory:
+   **⚠️ SECURITY WARNING: Never commit API keys to version control!**
+
+   Run the setup script to create your environment file:
+   ```bash
+   npm run setup-env
+   ```
+
+   Or manually copy the example environment file:
+   ```bash
+   cp env.example .env
+   ```
+
+   Then edit `.env` with your actual API keys:
    ```env
-   GOOGLE_CLOUD_VISION_API_KEY=your_google_cloud_vision_api_key
-   POKEMON_TCG_API_KEY=your_pokemon_tcg_api_key
-   MARVEL_API_KEY=your_marvel_api_key
-   MARVEL_HASH=your_marvel_hash
-   MARVEL_TS=your_marvel_timestamp
+   # Required for card detection
+   EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_KEY=your_google_cloud_vision_api_key_here
+   
+   # Optional - for enhanced Pokémon card data
+   POKEMON_TCG_API_KEY=your_pokemon_tcg_api_key_here
+   
+   # Optional - for Marvel card data
+   MARVEL_API_KEY=your_marvel_api_key_here
    ```
 
    **Google Cloud Vision API Setup:**
@@ -87,16 +102,28 @@ A React Native mobile application that uses AI to scan and identify collectible 
    - **Yu-Gi-Oh! API**: Free, no authentication required for Yu-Gi-Oh! cards
    - **Sports Card Database API**: Free, no authentication required for Baseball and Basketball cards
 
-5. **Update API configuration**
+5. **API Configuration**
 
-   Open `src/services/aiService.ts` and replace the placeholder API keys:
-   ```typescript
-   const GOOGLE_CLOUD_VISION_API_KEY = process.env.GOOGLE_CLOUD_VISION_API_KEY;
-   const POKEMON_TCG_API_KEY = process.env.POKEMON_TCG_API_KEY;
-   const MARVEL_API_KEY = process.env.MARVEL_API_KEY;
-   const MARVEL_HASH = process.env.MARVEL_HASH;
-   const MARVEL_TS = process.env.MARVEL_TS;
-   ```
+   The app is already configured to use environment variables. The API keys are automatically loaded from your `.env` file.
+
+## Security
+
+### API Key Management
+- **Never commit API keys to version control**
+- Use environment variables for all API keys
+- The `.env` file is automatically ignored by git
+- For production, use secure key management services
+
+### Environment Variables
+- `EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_KEY`: Required for card detection
+- `POKEMON_TCG_API_KEY`: Optional for enhanced Pokémon card data
+- `MARVEL_API_KEY`: Optional for Marvel card data
+
+### Best Practices
+1. Keep your `.env` file secure and never share it
+2. Rotate API keys regularly
+3. Use API key restrictions in Google Cloud Console
+4. Monitor API usage to prevent abuse
 
 ## Running the App
 
